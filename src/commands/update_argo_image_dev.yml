@@ -40,10 +40,12 @@ steps:
           for element in "${array[@]}"; do
             echo "Updating image for: $element"
             if [ '<<parameters.deployment_type>>' = 'global' ]; then
-              sed -i -r "s/<<parameters.repository_name>>\:(.+)/<<parameters.repository_name>>\:$FULL_VERSION/" tradeart-tenants/argocd/services/overlays/<<parameters.argo_env_name>>/$element/version.yaml
+              file=tradeart-tenants/argocd/services/overlays/<<parameters.argo_env_name>>/$element/version.yaml
             else
-              sed -i -r "s/<<parameters.repository_name>>\:(.+)/<<parameters.repository_name>>\:$FULL_VERSION/" tradeart-tenants/argocd/base/<<parameters.argo_env_name>>/$element/deployment.yaml
+              file=tradeart-tenants/argocd/base/<<parameters.argo_env_name>>/$element/deployment.yaml
             fi
+            sed -i -r "s/<<parameters.repository_name>>\:(.+)/<<parameters.repository_name>>\:$FULL_VERSION/" "$file"
+            grep -qF "<<parameters.repository_name>>:$FULL_VERSION" "$file" || { echo "Image tag $FULL_VERSION was not set in $file"; exit 1; }
           done
         done
         IFS=$OLD_IFS
@@ -54,5 +56,9 @@ steps:
         git config user.email "tradeart_dev@yolo.com"
         git config user.name "CircleCI"
         git add .
+        if git diff --cached --quiet; then
+          echo "Image tag $FULL_VERSION is already set, so there is nothing to commit."
+          exit 0
+        fi
         git commit -a -m "Deploy <<parameters.repository_name>> $FULL_VERSION to <<parameters.argo_env_name>>"
         GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_1" git push
