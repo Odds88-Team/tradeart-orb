@@ -26,7 +26,7 @@ The pipeline is a two-stage setup workflow:
 1. [.circleci/config.yml](.circleci/config.yml) (`setup: true`) — lint, review (`RC009,RC010` excluded), pack, shellcheck, then publish a `dev:` version and hand off via `orb-tools/continue`.
 2. [.circleci/test-deploy.yml](.circleci/test-deploy.yml) — runs integration tests against the just-published dev orb; on a release tag it also runs `PROD publish`.
 
-Integration tests for new commands go into `test-deploy.yml`'s `jobs:` section and must be wired into the `test-deploy` workflow with `filters: *filters`, and added to the `requires:` list of `PROD publish` — otherwise they don't gate the release.
+Integration tests for new commands go into `test-deploy.yml`'s `jobs:` section and must be wired into the `test-deploy` workflow with `filters: *filters`, and added to the `requires:` list of `PROD publish` — otherwise they don't gate the release. The BATS unit tests for `src/scripts` run inside `command-test` (via `circleci/bats`), which already gates `PROD publish`, so a new `src/tests/*.bats` file needs no wiring.
 
 ## Source layout and composition model
 
@@ -68,6 +68,8 @@ Several commands clone sibling private repos over SSH using a deploy key echoed 
 ### Deployment
 
 Deployment is **ArgoCD GitOps only** (`argo_deploy_dev`, `argo_deploy_prod`) — the orb never touches a cluster. It commits a new image tag to the tenants repo: `deployment_type: global` edits `argocd/services/overlays/<env>/<svc>/version.yaml`; `tenanted` edits `argocd/base/.../deployment.yaml`. `lambda_deploy` is the one exception, calling `aws lambda update-function-code` directly.
+
+The tenants repos are shared, so parallel service pipelines regularly race each other's push. `update_argo_image_*` runs `src/scripts/update_argo_image.sh`, which retries a push that lost the race to another deploy (`push_max_attempts`, default 3) by resetting onto the new remote head and re-applying the tag edit there; any other push failure is fatal. Keep the edit idempotent and re-runnable if you change it.
 
 The Helm push path (`helm`, `helm-tenanted`, `validate-helm`, `validate-helm-tenanted`, `connect_to_vpn`, `checkout_terraform_project`) was removed in v5 — do not reintroduce cluster-facing deploys.
 

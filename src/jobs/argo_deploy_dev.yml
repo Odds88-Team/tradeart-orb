@@ -25,6 +25,12 @@ parameters:
     type: enum
     enum: ["global", "tenanted"]
     default: "global"
+  push_max_attempts:
+    description: >
+      How many times to push the image tag change before failing. A push rejected because another
+      pipeline updated the ArgoCD repository first is retried on the new remote head.
+    type: integer
+    default: 3
   executor_class:
     default: 'small'
     type: string
@@ -38,6 +44,7 @@ steps:
       argo_service_names: <<parameters.argo_service_names>>
       argo_env_name: <<parameters.argo_env_name>>
       deployment_type: <<parameters.deployment_type>>
+      push_max_attempts: <<parameters.push_max_attempts>>
   - inject_slack_templates:
       service_name: <<parameters.repository_name>>
   - slack/notify:

@@ -3,6 +3,7 @@ orbs:
   # Your orb will be automatically injected here during the pipeline.
   # Reference your orb's jobs and commands below as they will exist when built.
   orb-tools: circleci/orb-tools@12.0
+  bats: circleci/bats@1.1.0
   # The orb definition is intentionally not included here. It will be injected into the pipeline.
   tradeart-orb: {}
 
@@ -29,6 +30,16 @@ jobs:
       - checkout
       # Run your orb's commands to validate them.
       - tradeart-orb/greet
+      # Unit-test the shell bodies in src/scripts that the commands include.
+      - bats/install
+      - run:
+          name: "BATS tests"
+          # bats does not create --output itself, and options must precede the test path.
+          command: |
+            mkdir -p test-results
+            bats --report-formatter junit --output test-results src/tests
+      - store_test_results:
+          path: test-results
 workflows:
   test-deploy:
     jobs:
