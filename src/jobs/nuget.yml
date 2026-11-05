@@ -10,6 +10,17 @@ parameters:
   namespaces:
     description: A list of namespaces for which to build NuGets
     type: string
+  paths:
+    description: >
+      Space-separated paths relative to the repository root, e.g. "Marlin.Common Directory.Build.props". When set, the job
+      halts without packing or publishing unless one of them changed (see the halt_unless_changed command). Empty publishes on every run.
+    type: string
+    default: ''
+  force_publish:
+    description: >
+      Publishes even when none of the paths changed. Meant for a manual run, passed from a pipeline parameter of the consumer.
+    type: boolean
+    default: false
   base_version:
     description: Base version
     type: string
@@ -25,6 +36,14 @@ parameters:
 
 steps:
   - checkout
+  - when:
+      condition:
+        and:
+          - <<parameters.paths>>
+          - not: <<parameters.force_publish>>
+      steps:
+        - halt_unless_changed:
+            paths: <<parameters.paths>>
   - inject_version_data:
       base_version: <<parameters.base_version>>
       pipeline_id: <<parameters.pipeline_id>>

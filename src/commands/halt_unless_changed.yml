@@ -1,0 +1,15 @@
+description: >
+  Halts the job, without failing it, when no file under the given paths changed in the commits the pipeline brings in.
+  On master, staging and release that is the last merge; on any other branch, every commit since it left master.
+
+parameters:
+  paths:
+    description: Space-separated git pathspecs relative to the repository root, e.g. "Marlin.Common Directory.Build.props".
+    type: string
+
+steps:
+  - run:
+      name: "Checking for changes"
+      environment:
+        PARAM_PATHS: "<<parameters.paths>>"
+      command: <<include(scripts/halt_unless_changed.sh)>>
