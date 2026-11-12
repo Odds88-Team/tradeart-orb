@@ -1,0 +1,68 @@
+description: >
+  Packages an Intent Architect application, e.g. a model-only messaging application, into an .imod and uploads it to the
+  Intent Architect module server, versioned <base_version>.<pipeline_id> with the branch name as a pre-release suffix outside master.
+
+executor:
+  name: default
+  tag: "10.0"
+  resource_class: <<parameters.executor_class>>
+
+parameters:
+  application_config:
+    description: >
+      Path to the application's .application.config file relative to the repository root,
+      e.g. "intent/TradeArt.Messages.FeedCore/TradeArt.Messages.FeedCore.application.config".
+    type: string
+  paths:
+    description: >
+      Space-separated paths relative to the repository root, e.g. "intent/TradeArt.Messages.FeedCore". When set, the job
+      halts without packaging or publishing unless one of them changed (see the halt_unless_changed command). Empty publishes on every run.
+    type: string
+    default: ''
+  force_publish:
+    description: >
+      Publishes even when none of the paths changed. Meant for a manual run, passed from a pipeline parameter of the consumer.
+    type: boolean
+    default: false
+  base_version:
+    description: Major and minor version of the module, e.g. "2.1". The pipeline id becomes the patch.
+    type: string
+  pipeline_id:
+    type: integer
+  authors:
+    description: Authors written into the module.
+    type: string
+    default: 'TradeArt'
+  intent_version:
+    description: Version of the Intent Packager CLI.
+    type: string
+    default: '5.4.1'
+  executor_class:
+    default: 'small'
+    type: string
+
+steps:
+  - checkout
+  - when:
+      condition:
+        and:
+          - <<parameters.paths>>
+          - not: <<parameters.force_publish>>
+      steps:
+        - halt_unless_changed:
+            paths: <<parameters.paths>>
+  - inject_version_data:
+      base_version: <<parameters.base_version>>
+      pipeline_id: <<parameters.pipeline_id>>
+  - package_intent_app:
+      application_config: <<parameters.application_config>>
+      folder: intent_module
+      authors: <<parameters.authors>>
+      intent_version: <<parameters.intent_version>>
+  - publish_intent_module:
+      folder: intent_module
+  - inject_slack_templates
+  - slack/notify:
+      event: fail
+      template: BUILD_FAILED_TEMPLATE
+      channel: odds88-circleci-notifications

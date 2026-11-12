@@ -1,0 +1,31 @@
+description: >
+  Uploads the single .imod in the given folder to the Intent Architect module server and stores the folder as artifacts.
+
+parameters:
+  folder:
+    description: Folder holding the .imod to upload.
+    type: string
+  module_server_url:
+    type: string
+    default: 'https://modules.intentarchitect.com/'
+
+steps:
+  - run:
+      name: "Install Module Server CLI"
+      command: |
+        dotnet tool install Intent.ModuleServer.Client.CLI --global --prerelease
+        echo 'export PATH="$PATH:$HOME/.dotnet/tools"' >> "$BASH_ENV"
+  - run:
+      name: "Publishing Intent module"
+      command: |
+        shopt -s nullglob
+        MODULES=("<<parameters.folder>>"/*.imod)
+        if [ ${#MODULES[@]} -ne 1 ]; then
+          echo "Expected exactly one .imod in <<parameters.folder>>, found ${#MODULES[@]}."
+          exit 1
+        fi
+        module-server-client-cli upload-module "<<parameters.module_server_url>>" "${MODULES[0]}" \
+          --organization-id "$INTENT_MODULE_SERVER_ORGANIZATION_ID" --access-token "$INTENT_MODULE_SERVER_ACCESS_TOKEN"
+  - store_artifacts:
+      path: <<parameters.folder>>
+      destination: modules

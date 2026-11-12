@@ -1,0 +1,38 @@
+description: >
+  Packages an Intent Architect application into an .imod with the Intent Packager CLI, writing it into the given folder.
+  The module is versioned $VERSION_PREFIX, suffixed with the branch name outside master, so inject_version_data must run first.
+  Exports the version as MODULE_VERSION.
+
+parameters:
+  application_config:
+    description: Path to the application's .application.config file relative to the repository root.
+    type: string
+  folder:
+    description: Folder to write the .imod into. It must not hold other .imod files.
+    type: string
+  authors:
+    type: string
+    default: 'TradeArt'
+  intent_version:
+    description: Version of the Intent Packager CLI.
+    type: string
+    default: '5.4.1'
+
+steps:
+  - run:
+      name: "Install Intent Packager CLI"
+      command: |
+        dotnet tool install Intent.Packager.CLI --global --version <<parameters.intent_version>>
+        echo 'export PATH="$PATH:$HOME/.dotnet/tools"' >> "$BASH_ENV"
+  - run:
+      name: "Packaging Intent application"
+      command: |
+        MODULE_VERSION="$VERSION_PREFIX"
+        if [ "$CIRCLE_BRANCH" != "master" ]; then
+          MODULE_VERSION="$MODULE_VERSION-$(printf '%s' "$CIRCLE_BRANCH" | sed 's/[^0-9A-Za-z-]/-/g')"
+        fi
+        echo "Module version: $MODULE_VERSION"
+        echo "export MODULE_VERSION=$MODULE_VERSION" >> "$BASH_ENV"
+        mkdir -p "<<parameters.folder>>"
+        intent-packager package-application "<<parameters.application_config>>" "<<parameters.folder>>" \
+          --version "$MODULE_VERSION" --authors "<<parameters.authors>>"

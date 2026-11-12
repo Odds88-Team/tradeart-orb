@@ -50,10 +50,13 @@ Variables not listed here (`FULL_VERSION`, `VERSION_PREFIX`, `VERSION_SUFFIX`, `
 | `GITHUB_INTENT_PRIVATE_KEY` | `intent_check` | SSH deploy key for `Odds88-Team/tradeart-intent-modules`. |
 | `INTENT_USERNAME` | `intent_check` | Intent Architect account used by `intent-cli ensure-no-outstanding-changes`. |
 | `INTENT_PASSWORD` | `intent_check` | Intent Architect password. |
+| `INTENT_MODULE_SERVER_ORGANIZATION_ID` | `publish-intent-app` | Organization id on the Intent Architect module server (`modules.intentarchitect.com`). |
+| `INTENT_MODULE_SERVER_ACCESS_TOKEN` | `publish-intent-app` | Access token for uploading modules to that organization. |
 
 ### Notes
 
 - **`nuget`** job — `push_nuget` runs `dotnet nuget push --source "nuget/Main"`. That source and its credentials come from the `NuGet.config` baked into the `trading-dev-core-sdk` builder image, not from a context variable. Its optional `paths` parameter (space-separated, relative to the repo root) makes the job halt without publishing, and without a Slack notification, unless one of those paths changed: on `master`/`staging`/`release` in the last merge, on any other branch since it left `master`. List everything that affects the packages, such as shared `Directory.Build.props`. `force_publish: true` skips the check; to set it from a manual run, declare a boolean pipeline parameter and pass it through, e.g. `force_publish: << pipeline.parameters.force_publish >>`.
+- **`publish-intent-app`** job — packages an Intent Architect application (e.g. a model-only messaging application) into an `.imod` with `intent-packager package-application` and uploads it to the module server. The module is versioned `<base_version>.<pipeline_id>`, with the branch name as a pre-release suffix outside `master`, and the `.imod` is kept as a build artifact. `paths` and `force_publish` behave as on `nuget`.
 - **`build`**, **`lambda_build`**, **`test_no_sonar`**, **`notify-approve-awaited`** need only the two always-required variables.
 - **This repo's own pipeline** additionally uses `CIRCLE_CI_API_KEY` (in the `global` context) for the `PROD publish` job in [.circleci/test-deploy.yml](.circleci/test-deploy.yml). Consumer repos do not need it.
 - **No longer used (removed with the Helm deploy path):** `SSH_KEY_PROD`, `DEV_K8S_ENDPOINT`, `PROD_K8S_ENDPOINT`, `DEV_CLUSTER_NAME`, `STAGING_CLUSTER_NAME`, `PROD_CLUSTER_NAME`, `TEST_CLUSTER_VALUES_NAME`, `DEV_CLUSTER_VALUES_NAME`, `STAGING_CLUSTER_VALUES_NAME`, `PROD_CLUSTER_VALUES_NAME`, `GITHUB_TERRAFORM_PRIVATE_KEY`. They can be dropped from the context once every consumer repo is on the ArgoCD-only version of the orb.
