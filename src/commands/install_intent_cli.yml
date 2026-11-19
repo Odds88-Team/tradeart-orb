@@ -1,0 +1,14 @@
+description: >
+  Install the Intent Architect Software Factory CLI (intent-cli) as a global dotnet tool.
+
+parameters:
+  intent_version:
+    description: Version of the Intent Software Factory CLI.
+    type: string
+    default: '4.4.5'
+steps:
+  - run:
+      name: "Install Intent CLI"
+      command: |
+        dotnet tool install Intent.SoftwareFactory.CLI --global --version <<parameters.intent_version>>
+        PATH="${PATH}:/root/.dotnet/tools"

@@ -19,16 +19,29 @@ parameters:
     description: Version of intent check tool required for the run.
     type: string
     default: '4.4.5'
+  intent_solution:
+    description: >
+      Path to the Intent Architect solution (.isln) file to run SDD verification (intent-cli verify-sdd) against
+      after the Software Factory check. SDD verification is skipped when unspecified.
+      Requires an intent_version that supports verify-sdd.
+    type: string
+    default: ''
   executor_class:
     default: 'medium'
     type: string
 
 steps:
   - checkout
+  - install_intent_cli:
+      intent_version: <<parameters.intent_version>>
   - intent_check_staged:
       path_to_intent: <<parameters.path_to_intent>>
       application_id: <<parameters.application_id>>
-      intent_version: <<parameters.intent_version>>
+  - when:
+      condition: <<parameters.intent_solution>>
+      steps:
+        - intent_verify_sdd:
+            intent_solution: <<parameters.intent_solution>>
   - inject_slack_templates
   - slack/notify:
       event: fail
