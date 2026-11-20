@@ -1,5 +1,6 @@
 description: >
   Check there are no staged changes in Intent Architect Software Factory.
+  Requires the Intent CLI to be installed already (see install_intent_cli).
 
 parameters:
   path_to_intent:
@@ -8,15 +9,7 @@ parameters:
   application_id:
     type: string
     default: ''
-  intent_version:
-    type: string
-    default: '4.4.5'
 steps:
-  - run:
-      name: "Install Intent CLI"
-      command: |
-        dotnet tool install Intent.SoftwareFactory.CLI --global --version <<parameters.intent_version>>
-        PATH="${PATH}:/root/.dotnet/tools"
   - run:
       name: "Check Intent unstaged changes"
       command: |

@@ -1,0 +1,13 @@
+description: >
+  Verify the Intent Architect solution's SDD specs are up to date with their recorded verdicts.
+  Requires the Intent CLI to be installed already (see install_intent_cli).
+
+parameters:
+  intent_solution:
+    description: Path to the Intent Architect solution (.isln) file or folder containing a single .isln file.
+    type: string
+steps:
+  - run:
+      name: "Verify Intent SDD specs"
+      command: |
+        intent-cli verify-sdd -- "<<parameters.intent_solution>>"
